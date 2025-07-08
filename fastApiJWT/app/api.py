@@ -9,6 +9,9 @@ from app.model import PostSchema, UserSchema, UserLoginSchema
 import mysql.connector
 import hashlib
 
+from app.model import usersDB
+from database.db import conn
+
 #Conexxion a DB
 mydb = mysql.connector.connect(
     host="localhost",
@@ -109,10 +112,12 @@ async def create_user(user: UserSchema = Body(...)):
     users.append(user) # replace with db call, making sure to hash the password first
     #print(users)
     print(users)
-    #arreglo a medias para hacer el query
-    userToQuery()
     
-    print(queryUser)
+    var1=user.dict()
+    print(var1)
+
+    conn.execute(usersDB.insert().values(var1))
+    conn.commit()
     return sign_jwt(user.email)
 
 #revisar si el usuario existe

@@ -1,6 +1,11 @@
 #modelos o esquemas para los post y get
 
+#modelos json
 from pydantic import BaseModel, Field, EmailStr
+#modelos DB
+from sqlalchemy import Table, Column, func
+from sqlalchemy.sql.sqltypes import Integer, String, DateTime
+from database.db import engine, meta_data
 
 #establecer el modelo para los post
 class PostSchema(BaseModel):
@@ -43,3 +48,13 @@ class UserLoginSchema(BaseModel):
                 "password": "weakpassword"
             }
         }
+
+# Modelo de la base de datos 
+usersDB = Table("usuario", meta_data,
+            Column("NAME_USER", String(20)),
+            Column("AP_PATERNO", String(20)),
+            Column("AP_MATERNO", String(20)), 
+            Column("CONTRASEÑA", String(20)),
+            Column("EMAIL_USER", String(100)))
+
+meta_data.create_all(engine)
