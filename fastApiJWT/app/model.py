@@ -51,10 +51,11 @@ class UserLoginSchema(BaseModel):
 
 # Modelo de la base de datos 
 usersDB = Table("usuario", meta_data,
-            Column("NAME_USER", String(20)),
-            Column("AP_PATERNO", String(20)),
-            Column("AP_MATERNO", String(20)), 
-            Column("CONTRASEÑA", String(20)),
-            Column("EMAIL_USER", String(100)))
+            Column("NAME_USER", String(200)), 
+            Column("EMAIL_USER", String(100)),
+            Column("CONTRASEÑA", String(200)),
+            Column("TOKEN_USUARIO", String(200))
+            )
+
 
 meta_data.create_all(engine)

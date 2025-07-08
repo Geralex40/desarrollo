@@ -3,14 +3,11 @@
 from fastapi import FastAPI, Body, Depends, HTTPException, status
 
 from app.auth.auth_bearier import JWTBearer
-from app.auth.auth_handler import sign_jwt
+from app.auth.auth_handler import sign_jwt,sign_jwtLogin
 from app.model import PostSchema, UserSchema, UserLoginSchema
 
 import mysql.connector
 import hashlib
-
-from app.model import usersDB
-from database.db import conn
 
 #Conexxion a DB
 mydb = mysql.connector.connect(
@@ -44,6 +41,9 @@ posts = [
     }
 ]
 
+#diccionario para pasar el json a nuestra tabla usuarios
+var1={}
+
 #Arreglo para los posts
 users = []
 
@@ -63,12 +63,14 @@ def userToQuery():
 
 #Que me actualize mi arreglo local de la tabla Usuario
 def select_users():
-    select_query = "SELECT NAME_USUARIO, EMAIL_USUARIO, CONTRASEÑA FROM usuario"
+    select_query = "SELECT NAME_USER, EMAIL_USER, CONTRASEÑA, TOKEN_USUARIO FROM usuario"
     cursor.execute(select_query)
     results = cursor.fetchall()
     return results
 queryUser=select_users()
 print(queryUser)
+#print(queryUser[3][3])
+print(users)
 
 #primer endpoint
 @app.get("/", tags=["root"])
@@ -76,7 +78,7 @@ async def read_root() -> dict:
     return {"message": "Welcome to your blog!"}
 
 #ver los posts
-@app.get("/posts", tags=["posts"])
+@app.get("/posts",dependencies=[Depends(JWTBearer())], tags=["posts"])
 async def get_posts() -> dict:
     return { "data": posts }
 
@@ -110,28 +112,42 @@ async def add_post(post: PostSchema) -> dict:
 async def create_user(user: UserSchema = Body(...)):
     #arreglo para manejar las keys
     users.append(user) # replace with db call, making sure to hash the password first
-    #print(users)
     print(users)
     
     var1=user.dict()
-    print(var1)
+    for x in var1:
+        if x=="fullname":
+            var1["NAME_USER"]=var1.pop('fullname')
+        elif x=="email":
+            var1["EMAIL_USER"]=var1.pop('email')
+        else:
+            var1["CONTRASEÑA"]=var1.pop('password')
+    
+    return sign_jwt(user.email,var1)
 
-    conn.execute(usersDB.insert().values(var1))
-    conn.commit()
-    return sign_jwt(user.email)
 
 #revisar si el usuario existe
 def check_user(data: UserLoginSchema):
     for user in users:
-        if user.email == data.email and user.password == data.password:
+        if ((user.email == data.email)) and ((user.password == data.password)):
             return True
+    for user in queryUser:
+        if (user[1] == data.email) and (user[2] == data.password):
+            var1["NAME_USER"]="logeo"
+            var1["EMAIL_USER"]=data.email
+            var1["CONTRASEÑA"]=data.password
+            #var1["TOKEN_USUARIO"]=user[3]
+            print(var1)
+            return True
+    
     return False
 
 #endpoint para el logeo
 @app.post("/user/login", tags=["user"])
 async def user_login(user: UserLoginSchema = Body(...)):
     if check_user(user):
-        return sign_jwt(user.email)
+        user_id=user.email
+        return sign_jwtLogin(user_id,var1)
     return {
         "error": "Wrong login details!"
     }
